@@ -1,0 +1,106 @@
+# ==========================================
+# AI Portfolio Manager - Git Ignore Rules
+# ==========================================
+
+# -------------------------------------------
+# CRITICAL: API Keys and Secrets
+# -------------------------------------------
+.env
+*.env
+!.env.example
+.env.local
+.env.*.local
+secrets/
+*.key
+*.pem
+
+# -------------------------------------------
+# Generated Data (may contain sensitive info)
+# -------------------------------------------
+data/
+!data/.gitkeep
+reports/
+!reports/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+
+# -------------------------------------------
+# Python
+# -------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# -------------------------------------------
+# Virtual Environments
+# -------------------------------------------
+venv/
+ENV/
+env/
+.venv
+
+# -------------------------------------------
+# IDEs and Editors
+# -------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# -------------------------------------------
+# OS Files
+# -------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# -------------------------------------------
+# Logs and Debugging
+# -------------------------------------------
+*.log
+logs/
+*.out
+
+# -------------------------------------------
+# Testing
+# -------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# -------------------------------------------
+# Documentation Build
+# -------------------------------------------
+docs/_build/
+site/
