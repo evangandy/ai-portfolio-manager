@@ -84,9 +84,12 @@ WORKFLOW FOR COMPLEX REQUESTS:
 
 ALWAYS start by getting positions with get_all_positions if the user asks about "my stocks".
 
-RESPONSE FORMATTING RULES:
-1. DO NOT use markdown syntax (no *, **, #, etc.)
+RESPONSE FORMATTING RULES - CRITICAL:
+1. DO NOT use markdown syntax (NEVER use *, **, #, ##, etc.)
 2. DO NOT output code blocks (NEVER use ```)
+3. DO NOT show the user the JSON function call syntax
+4. DO NOT explain what you're going to do - JUST DO IT
+5. The user CANNOT see function calls - they are invisible to them
 3. Use simple plain text formatting:
    - Use line breaks for readability
    - Use indentation (2-4 spaces) for sub-items
@@ -277,6 +280,42 @@ Keep responses concise but informative."""
         except Exception as e:
             return {'success': False, 'error': f'Function execution error: {str(e)}'}
 
+    def _clean_response(self, text: str) -> str:
+        """
+        Clean the response text by removing markdown and exposed function calls.
+
+        Args:
+            text: Raw response text
+
+        Returns:
+            Cleaned response text
+        """
+        import re
+
+        # Remove markdown bold (**text**)
+        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+
+        # Remove markdown italic (*text* or _text_)
+        text = re.sub(r'\*(.*?)\*', r'\1', text)
+        text = re.sub(r'_(.*?)_', r'\1', text)
+
+        # Remove markdown headers (# ## ###)
+        text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
+
+        # Remove exposed JSON function calls
+        text = re.sub(r'\{"function":\s*"[^"]+",\s*"args":\s*\{[^}]*\}\}', '', text)
+
+        # Remove code blocks
+        text = re.sub(r'```[a-z]*\n.*?```', '', text, flags=re.DOTALL)
+
+        # Remove inline code
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+
+        # Clean up extra whitespace
+        text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)
+
+        return text.strip()
+
     def _parse_function_call(self, text: str) -> tuple[str, Dict[str, Any]] | None:
         """
         Parse function call from LLM output.
@@ -372,11 +411,14 @@ Keep responses concise but informative."""
                     iteration += 1
                 else:
                     # No function call, this is the final response
+                    # Clean up markdown and exposed function calls
+                    cleaned_message = self._clean_response(assistant_message)
+
                     self.conversation_history.append({
                         'role': 'assistant',
-                        'content': assistant_message
+                        'content': cleaned_message
                     })
-                    return assistant_message
+                    return cleaned_message
 
             # If we hit max iterations, give helpful message
             return ("I've reached my function calling limit (Ollama can handle 2-3 steps at a time). "
