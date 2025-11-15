@@ -1,0 +1,32 @@
+flowchart TD
+    A["User Input: 'Show me how much AAPL I own and how it's performing'"] --> B["Gemini AI: Intent Analysis"]
+    B --> C{"Function Planning: What data is needed?"}
+    C --> D["get_position('AAPL'): Get portfolio position"]
+    C --> E["get_stock_quote('AAPL'): Get current price"]
+    C --> F["get_stock_news(['AAPL']): Get recent news"]
+    D --> G["Alpaca Trading API: Live brokerage data"]
+    E --> H["Alpaca Market Data API: Real-time quotes"]
+    F --> I["Alpaca News API: Recent headlines"]
+    G --> J["Position Data: 10 shares, $247.90 avg cost, $2,687 market value"]
+    H --> K["Current Quote: $268.72 current price, $268.50 bid, $268.90 ask"]
+    I --> L["News Headlines: 'Apple reports strong Q4', 'iPhone 16 sales exceed expectations'"]
+    J --> M["Gemini AI: Data Synthesis"]
+    K --> M
+    L --> M
+    M --> N["Natural Language Response: 'You own 10 shares of AAPL worth $2,687 (up 8.4% from your avg cost of $247.90). Latest news shows strong Q4 performance.'"]
+    N --> O["Result: User receives actionable portfolio insights"]
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#fff3e0
+    style D fill:#e8f5e8
+    style E fill:#e8f5e8
+    style F fill:#e8f5e8
+    style G fill:#ffebee
+    style H fill:#ffebee
+    style I fill:#ffebee
+    style J fill:#f0f4c3
+    style K fill:#f0f4c3
+    style L fill:#f0f4c3
+    style M fill:#e3f2fd
+    style N fill:#c8e6c9
+    style O fill:#dcedc8
