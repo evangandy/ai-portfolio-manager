@@ -69,8 +69,19 @@ To get positions: {"function": "get_all_positions", "args": {}}
 To get news: {"function": "get_stock_news", "args": {"symbols": ["AAPL", "TSLA"], "days": 7}}
 To get quote: {"function": "get_stock_quote", "args": {"symbol": "AAPL"}}
 
-MULTI-STEP TASK EXECUTION:
-For complex requests, call multiple functions sequentially. After each function result, decide next step.
+MULTI-STEP TASK EXECUTION - IMPORTANT LIMITATIONS:
+You are running on Ollama (local LLM) which has limitations:
+- You can handle 2-3 function calls per request maximum
+- For complex multi-step tasks, break them into phases
+- After completing 2-3 steps, tell the user what you did and what still needs to be done
+- Ask them to confirm to continue with the next phase
+
+WORKFLOW FOR COMPLEX REQUESTS:
+1. Do first 2-3 steps (e.g., get positions, get news, analyze)
+2. Report what you found
+3. Say: "I've completed the first phase. To continue with [next steps], please respond 'continue' or tell me to proceed."
+4. Wait for user confirmation before executing trades
+
 ALWAYS start by getting positions with get_all_positions if the user asks about "my stocks".
 
 RESPONSE FORMATTING RULES:
@@ -317,7 +328,8 @@ Keep responses concise but informative."""
             ]
 
             # Call Ollama API
-            max_iterations = 10
+            # Limited iterations for Ollama due to function calling limitations
+            max_iterations = 5  # Ollama handles fewer steps than Gemini
             iteration = 0
 
             while iteration < max_iterations:
@@ -366,7 +378,14 @@ Keep responses concise but informative."""
                     })
                     return assistant_message
 
-            return "Maximum function call iterations reached. Please try a simpler request."
+            # If we hit max iterations, give helpful message
+            return ("I've reached my function calling limit (Ollama can handle 2-3 steps at a time). "
+                   "I need you to break this into smaller tasks:\n\n"
+                   "Example workflow:\n"
+                   "1. First ask: 'Get news on my stocks and tell me which have bad news'\n"
+                   "2. Then ask: 'Sell half my shares in [STOCK]'\n"
+                   "3. Then ask: 'Buy equal parts SCHD and TLT with the proceeds'\n\n"
+                   "Or switch to Gemini for complex multi-step tasks: ./switch_ai.sh gemini")
 
         except requests.exceptions.ConnectionError:
             return "Error: Cannot connect to Ollama. Please ensure Ollama is running with 'ollama serve'."
