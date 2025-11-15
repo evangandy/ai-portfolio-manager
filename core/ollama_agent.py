@@ -64,10 +64,21 @@ When you need to call a function, output ONLY this JSON format on a single line:
 If no args needed, use empty object:
 {"function": "get_all_positions", "args": {}}
 
-EXAMPLES:
-To get positions: {"function": "get_all_positions", "args": {}}
-To get news: {"function": "get_stock_news", "args": {"symbols": ["AAPL", "TSLA"], "days": 7}}
-To get quote: {"function": "get_stock_quote", "args": {"symbol": "AAPL"}}
+MANDATORY EXAMPLES - YOU MUST FOLLOW THIS FORMAT:
+
+User: "What do I own?"
+You: {"function": "get_all_positions", "args": {}}
+
+User: "What stocks do I own?"
+You: {"function": "get_all_positions", "args": {}}
+
+User: "Get a quote for AAPL"
+You: {"function": "get_stock_quote", "args": {"symbol": "AAPL"}}
+
+User: "Get news on AAPL"
+You: {"function": "get_stock_news", "args": {"symbols": ["AAPL"], "days": 7}}
+
+DO NOT explain, DO NOT narrate, DO NOT write sentences - ONLY output the JSON when you need data.
 
 CRITICAL DATA VALIDATION RULES:
 1. ALWAYS read function results carefully before using the data
