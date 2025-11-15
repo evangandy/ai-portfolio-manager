@@ -31,6 +31,7 @@ from rich.text import Text
 
 from core.alpaca_client import AlpacaClient
 from core.gemini_agent import GeminiAgent
+from core.ollama_agent import OllamaAgent
 from core.news_fetcher import NewsFetcher
 
 # Restore stderr after imports
@@ -47,14 +48,21 @@ class PortfolioManager:
         # Load environment variables
         load_dotenv()
 
-        # Get API keys
+        # Get API keys and configuration
         self.alpaca_api_key = os.getenv('ALPACA_API_KEY')
         self.alpaca_secret_key = os.getenv('ALPACA_SECRET_KEY')
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.ai_backend = os.getenv('AI_BACKEND', 'gemini').lower()
+        self.ollama_model = os.getenv('OLLAMA_MODEL', 'llama3.1')
+        self.ollama_base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
-        # Validate keys
-        if not all([self.alpaca_api_key, self.alpaca_secret_key, self.gemini_api_key]):
-            raise ValueError("Missing required API keys in .env file")
+        # Validate Alpaca keys (always required)
+        if not all([self.alpaca_api_key, self.alpaca_secret_key]):
+            raise ValueError("Missing required Alpaca API keys in .env file")
+
+        # Validate AI backend configuration
+        if self.ai_backend == 'gemini' and not self.gemini_api_key:
+            raise ValueError("Missing GEMINI_API_KEY in .env file (required when AI_BACKEND=gemini)")
 
         # Initialize Rich console
         self.console = Console()
@@ -72,10 +80,32 @@ class PortfolioManager:
             self.alpaca_secret_key,
             paper=True
         )
-        self.gemini_agent = GeminiAgent(
-            self.gemini_api_key,
-            self.alpaca_client
-        )
+
+        # Initialize AI agent based on backend selection
+        if self.ai_backend == 'ollama':
+            self.console.print("[cyan]Using Ollama (local LLM) backend[/cyan]")
+            self.ai_agent = OllamaAgent(
+                self.alpaca_client,
+                model=self.ollama_model,
+                base_url=self.ollama_base_url
+            )
+        else:
+            self.console.print("[cyan]Using Gemini API backend[/cyan]")
+            try:
+                self.ai_agent = GeminiAgent(
+                    self.gemini_api_key,
+                    self.alpaca_client
+                )
+            except Exception as e:
+                # Fallback to Ollama if Gemini fails
+                self.console.print(f"[yellow]Gemini initialization failed: {e}[/yellow]")
+                self.console.print("[cyan]Falling back to Ollama backend...[/cyan]")
+                self.ai_agent = OllamaAgent(
+                    self.alpaca_client,
+                    model=self.ollama_model,
+                    base_url=self.ollama_base_url
+                )
+
         self.news_fetcher = NewsFetcher(self.alpaca_client)
 
         # Ensure data directory exists
@@ -213,8 +243,24 @@ class PortfolioManager:
                     # Increment turn counter
                     self.turn_count += 1
 
-                    # Send to AI agent
-                    response = self.gemini_agent.chat(user_input)
+                    # Send to AI agent with error handling and fallback
+                    try:
+                        response = self.ai_agent.chat(user_input)
+                    except Exception as e:
+                        error_str = str(e)
+                        # Check if it's a Gemini quota/credit error
+                        if 'quota' in error_str.lower() or 'resource_exhausted' in error_str.lower() or '429' in error_str:
+                            self.console.print("[yellow]Gemini API quota exhausted. Switching to Ollama...[/yellow]")
+                            # Switch to Ollama
+                            self.ai_agent = OllamaAgent(
+                                self.alpaca_client,
+                                model=self.ollama_model,
+                                base_url=self.ollama_base_url
+                            )
+                            # Retry with Ollama
+                            response = self.ai_agent.chat(user_input)
+                        else:
+                            raise
 
                     # Display AI response
                     self.console.print(f"[bold green]AI:[/bold green] {response}\n")
