@@ -69,6 +69,18 @@ To get positions: {"function": "get_all_positions", "args": {}}
 To get news: {"function": "get_stock_news", "args": {"symbols": ["AAPL", "TSLA"], "days": 7}}
 To get quote: {"function": "get_stock_quote", "args": {"symbol": "AAPL"}}
 
+CRITICAL DATA VALIDATION RULES:
+1. ALWAYS read function results carefully before using the data
+2. NEVER make up stock symbols - only use real ones from function results
+3. NEVER guess quantities - use EXACT numbers from function results
+4. When selling shares, the qty must be LESS THAN OR EQUAL TO what you own
+5. For dividend/bond funds, use REAL symbols: SCHD, VYM, TLT, BND (not DSF, TBF)
+
+EXAMPLE - CORRECT WAY TO HANDLE POSITIONS:
+Function result: {"success": true, "data": [{"symbol": "AAPL", "qty": "2", "market_value": "545.16"}]}
+YOU MUST USE: qty=2, NOT 25 or any other number
+To sell half: 2 / 2 = 1 share (use integer division)
+
 MULTI-STEP TASK EXECUTION - IMPORTANT LIMITATIONS:
 You are running on Ollama (local LLM) which has limitations:
 - You can handle 2-3 function calls per request maximum
@@ -78,9 +90,10 @@ You are running on Ollama (local LLM) which has limitations:
 
 WORKFLOW FOR COMPLEX REQUESTS:
 1. Do first 2-3 steps (e.g., get positions, get news, analyze)
-2. Report what you found
+2. Report EXACTLY what you found (use real numbers from function results)
 3. Say: "I've completed the first phase. To continue with [next steps], please respond 'continue' or tell me to proceed."
 4. Wait for user confirmation before executing trades
+5. When executing trades, use REAL symbols (SCHD for dividend ETF, TLT for treasury bonds)
 
 ALWAYS start by getting positions with get_all_positions if the user asks about "my stocks".
 
@@ -186,6 +199,19 @@ Keep responses concise but informative."""
 
                 if not symbol or qty <= 0:
                     return {'success': False, 'error': 'Valid symbol and quantity required'}
+
+                # Additional validation for selling - check if we own enough
+                if side == 'sell':
+                    position = self.alpaca_client.get_position(symbol)
+                    if position:
+                        owned_qty = float(position.get('qty', 0))
+                        if qty > owned_qty:
+                            return {
+                                'success': False,
+                                'error': f'Cannot sell {qty} shares of {symbol}. You only own {owned_qty} shares. Maximum you can sell is {owned_qty}.'
+                            }
+                    else:
+                        return {'success': False, 'error': f'You do not own any {symbol} shares to sell'}
 
                 result = self.alpaca_client.place_market_order(symbol, qty, side)
                 return {'success': True, 'data': result} if result else {'success': False, 'error': 'Failed to place order'}
